@@ -1,0 +1,79 @@
+OCILIB - D bindings
+--------------------------------
+
+DESCRIPTION
+===========
+OCILIB is an open source and cross platform Oracle Driver that 
+delivers efficient access to Oracle databases. It offers a full 
+featured, easy and productive API. Written in ISO C on top of 
+OCI, OCILIB runs on all Oracle platforms.
+
+
+D BINDINGS
+==========
+Version 1.0, based on OCILIB v3.9.3 (2011-12-05)
+C headers available in the c/ directory.
+
+
+LICENSE
+=======
+It's licensed under GNU LESSER GENERAL PUBLIC LICENSE (LGPL).
+
+
+SETUP
+=====
+Windows
+  Download OCILIB version v3.9.3 (ocilib-3.9.3-windows.zip) from http://www.ocilib.net/
+
+  $ unzip ocilib-3.9.3-windows.zip
+  $ cd ocilib\lib32
+
+  Copy the folder 'deimos' and the file 'myapp.d' from this repository to ocilib\lib32
+
+  Create the import library - ANSI version*
+  if the implib utility is not installed in your system, download it from
+  http://ftp.digitalmars.com/bup.zip
+  $ implib ociliba-dmd.lib ociliba.dll
+
+  Build the app - ANSI - version*
+  $ dmd myapp.d ociliba-dmd.lib
+
+  Run the app
+  $ SET ORACLE_HOME=C:\oraclexe\app\oracle\product\10.2.0\server
+  $ myapp
+
+  * OCILIB comes in 3 versions. ANSI, Unicode and Mixed.
+
+  To use the Unicode version:
+  - create the import library from ocilibw.dll
+  - add -version=Unicode to dmd
+
+  To use the Mixed version:
+  - create the import library from ocilibm.dll
+  - add -version=Mixed to dmd.
+
+  For details, please see http://orclib.sourceforge.net/doc/html/group__g__charset.html
+
+
+Linux
+  Download and install OCILIB as described in
+  http://orclib.sourceforge.net/doc/html/group__g__install.html
+  
+  Copy the folder 'deimos' and the file 'myapp.d' from this repository to a folder of your choice.
+
+  Set the environment variables
+  $ export ORACLE_HOME=/usr/lib/oracle/xe/app/oracle/product/10.2.0/server
+  $ export LD_LIBRARY_PATH=$ORACLE_HOME/lib:/usr/local/lib
+  
+  Compile and run the app
+  $ dmd myapp.d -L-locilib
+  $ ./myapp
+
+
+LINKS
+=====
+Official website: http://www.ocilib.net/
+Sourceforge.net project: http://sourceforge.net/projects/orclib/
+Article on Wikipedia: http://en.wikipedia.org/wiki/OCILIB
+
+
