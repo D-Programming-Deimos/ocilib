@@ -7,7 +7,7 @@
     |                                                                                         |
     |                              Website : http://www.ocilib.net                            |
     |                                                                                         |
-    |             Copyright (c) 2007-2011 Vincent ROGIER <vince.rogier@ocilib.net>            |
+    |             Copyright (c) 2007-2012 Vincent ROGIER <vince.rogier@ocilib.net>            |
     |                                                                                         |
     +-----------------------------------------------------------------------------------------+
     |                                                                                         |
@@ -76,7 +76,7 @@ extern (C) {
  *
  * @section s_version Version information
  *
- * <b>Current version : 3.9.3 (2011-12-05)</b>
+ * <b>Current version : 3.10.0 (2012-08-08)</b>
  *
  * @section s_feats Main features
  *
@@ -168,8 +168,8 @@ extern (C) {
  * --------------------------------------------------------------------------------------------- */
 
 const OCILIB_MAJOR_VERSION =     3;
-const OCILIB_MINOR_VERSION =     9;
-const OCILIB_REVISION_VERSION =  3;
+const OCILIB_MINOR_VERSION =     10;
+const OCILIB_REVISION_VERSION =  0;
 
 /* --------------------------------------------------------------------------------------------- *
  * Installing OCILIB
@@ -1242,27 +1242,27 @@ alias extern(C) uint function
  * HA (High Availabality) events Notification User callback prototype.
  *
  * @param con    - Connection handle related to the event
- * @param source - Connection handle related to the event
- * @param status - Timestamp of the event
+ * @param source - source of the event
+ * @param event  - type of the event
  * @param time   - Timestamp of the event
  *
  * @note
  * Currently, Oracle only send HA down events
  *
  * @note
- * Possible values for parameter 'status' :
- *  - OCI_HET_DOWN : HA event type down
- *  - OCI_HET_UP   : HA event type up
- *
- * @note
- * Possible values for parameter 'event' :
+ * Possible values for parameter 'source' :
  *  - OCI_HES_INSTANCE                    
  *  - OCI_HES_DATABASE                    
  *  - OCI_HES_NODE                        
  *  - OCI_HES_SERVICE                     
  *  - OCI_HES_SERVICE_MEMBER              
  *  - OCI_HES_ASM_INSTANCE                
- *  - OCI_HES_PRECONNECT                  
+ *  - OCI_HES_PRECONNECT     
+ *
+ * @note
+ * Possible values for parameter 'event' :
+ *  - OCI_HET_DOWN : HA event type down
+ *  - OCI_HET_UP   : HA event type up            
  *
  */
 
@@ -1313,6 +1313,7 @@ union OCI_Variant {
     /* pointer to c natives types */
     void          *p_void;
     int           *p_int;
+	float         *p_float;
     double        *p_double;
     dtext         *p_dtext;
     mtext         *p_mtext;
@@ -1465,6 +1466,9 @@ const OCI_ERR_COLUMN_NOT_FOUND =            21;
 const OCI_ERR_DIRPATH_STATE =               22;
 const OCI_ERR_CREATE_OCI_ENVIRONMENT =      23;
 const OCI_ERR_REBIND_BAD_DATATYPE =         24;
+const OCI_ERR_TYPEINFO_DATATYPE =           25;
+
+const OCI_ERR_COUNT =                       26;
 
 /* binding */
 
@@ -1519,7 +1523,7 @@ const OCI_ARG_RAW =                         14;
 const OCI_ARG_OBJECT =                      15;
 const OCI_ARG_COLLECTION =                  16;
 const OCI_ARG_REF =                         17;
-
+const OCI_ARG_FLOAT =                       18;
 /* statement types */
 
 const OCI_CST_SELECT =                      1;
@@ -1636,7 +1640,7 @@ const OCI_NUM_UNSIGNED =                    2;
 const OCI_NUM_SHORT =                       4;
 const OCI_NUM_INT =                         8;
 const OCI_NUM_BIGINT =                      16;
-
+const OCI_NUM_FLOAT =                       32;
 const OCI_NUM_DOUBLE =                      64;
 
 const OCI_NUM_USHORT =                      (OCI_NUM_SHORT  | OCI_NUM_UNSIGNED);
@@ -2472,7 +2476,9 @@ extern(System) uint OCI_ErrorGetRow
  *   - DO NOT USE OCI_CHARSET_MIXED or OCI_CHARSET_WIDE OCILIB builds with XA connections
  *
  * @note
- * On success, a local transaction is automatically created and started
+ * On success, a local transaction is automatically created and started ONLY for regular 
+ * standalone connections and connections retrieved from connection pools.
+ * No transaction is created for XA connections or connection retrieved from session pools.
  *
  * @return
  * Connection handle on success or NULL on failure
@@ -2832,6 +2838,9 @@ extern(System) const(mtext)* OCI_GetDefaultFormatNumeric
  *
  * @param con - Connection handle
  *
+ * @note
+ * From v3.9.4, no more default transaction object is created for a new connection
+ *
  */
 
 extern(System) OCI_Transaction * OCI_GetTransaction
@@ -2841,13 +2850,18 @@ extern(System) OCI_Transaction * OCI_GetTransaction
 
 /**
  * @brief
- * Return the current transaction attached to the connection
+ * Set a transaction to a connection
  *
  * @param con   - Connection handle
  * @param trans - Transaction handle to assign
  *
  * @note
- * The current transaction is automatically stopped but the newly assigned is not started or resumed
+ * The current transaction (if any) is automatically stopped but the newly assigned is not
+ * started or resumed
+ * 
+ * @warning
+ * Do not set transaction object to XA connection or connection retrieved from a session pool
+ *
  *
  */
 
@@ -4084,7 +4098,7 @@ extern(System) const(mtext)* OCI_GetSQLVerb
  *
  * OCILIB provides a set of binding functions to use with:
  *
- * - Basic datatypes: string (char/wchar_t *), int, double, raw
+ * - Basic datatypes: string (char/wchar_t *), int, float, double, raw
  * - Object datatypes: lobs, files,longs, dates, cursors, statements,
  *                      timestamps, intervals, objects
  *
@@ -4745,6 +4759,58 @@ extern(System) boolean OCI_BindArrayOfDoubles
 
 /**
  * @brief
+ * Bind a float variable
+ *
+ * @param stmt - Statement handle
+ * @param name - Variable name
+ * @param data - Pointer to float variable
+ *
+ * @note
+ * parameter 'data' can NULL if the statement bind allocation mode
+ * has been set to OCI_BAM_INTERNAL
+ *
+ * @return
+ * TRUE on success otherwise FALSE
+ */
+
+extern(System) boolean OCI_BindFloat
+(
+    OCI_Statement* stmt,
+    const(mtext)*  name,
+    float*         data
+);
+
+/**
+ * @brief
+ * Bind an array of floats
+ *
+ * @param stmt   - Statement handle
+ * @param name   - Variable name
+ * @param data   - Array of float
+ * @param nbelem - Number of element in the array (PL/SQL table only)
+ *
+ * @warning
+ * Parameter 'nbelem' SHOULD ONLY be USED for PL/SQL tables.
+ * For regular DML array operations, pass the value 0.
+ *
+ * @note
+ * parameter 'data' can NULL if the statement bind allocation mode
+ * has been set to OCI_BAM_INTERNAL
+ *
+ * @return
+ * TRUE on success otherwise FALSE
+ */
+
+extern(System) boolean OCI_BindArrayOfFloats
+(
+    OCI_Statement* stmt,
+    const(mtext)*  name,
+    float*         data,
+    uint           nbelem
+);
+
+/**
+ * @brief
  * Bind a date variable
  *
  * @param stmt - Statement handle
@@ -5396,7 +5462,7 @@ extern(System) uint OCI_BindGetDirection
  * @note
  * Possible values are :
  *
- * - OCI_CDT_NUMERIC     : short, int, long long, double
+ * - OCI_CDT_NUMERIC     : short, int, long long, float, double
  * - OCI_CDT_DATETIME    : OCI_Date *
  * - OCI_CDT_TEXT        : dtext *
  * - OCI_CDT_LONG        : OCI_Long *
@@ -5445,6 +5511,7 @@ extern(System) uint OCI_BindGetType
  * - OCI_NUM_UINT
  * - OCI_NUM_BIGUINT
  * - OCI_NUM_DOUBLE
+ * - OCI_NUM_FLOAT
  *
  * For OCI_Long type the possible values are:
  * - OCI_BLONG
@@ -6182,7 +6249,7 @@ extern(System) const(mtext)* OCI_ColumnGetName
  * @note
  * Possible values are :
  *
- * - OCI_CDT_NUMERIC     : short, int, long long, double
+ * - OCI_CDT_NUMERIC     : short, int, long long, float, double
  * - OCI_CDT_DATETIME    : OCI_Date *
  * - OCI_CDT_TEXT        : dtext *
  * - OCI_CDT_LONG        : OCI_Long *
@@ -6450,6 +6517,7 @@ extern(System) uint OCI_ColumnGetSubType
  *   - OCI_NUM_BIGINT
  *   - OCI_NUM_BIGUINT
  *   - OCI_NUM_DOUBLE
+ *   - OCI_NUM_FLOAT
  *
  * @return
  * Return TRUE on success otherwise FALSE
@@ -6481,6 +6549,7 @@ extern(System) boolean OCI_SetStructNumericType
  *   - OCI_NUM_BIGINT
  *   - OCI_NUM_BIGUINT
  *   - OCI_NUM_DOUBLE
+ *   - OCI_NUM_FLOAT
  *
  * @return
  * Return TRUE on success otherwise FALSE
@@ -6936,6 +7005,48 @@ extern(System) double OCI_GetDouble2
 (
     OCI_Resultset *rs,
     const(mtext)* name
+);
+
+/**
+ * @brief
+ * Return the current float value of the column at the given index in the resultset
+ *
+ * @param rs    - Resultset handle
+ * @param index - Column position
+ *
+ * @note
+ * Column position starts at 1.
+ *
+ * @return
+ * The column current row value or 0.O if index is out of bounds
+ *
+ */
+
+extern(System) float OCI_GetFloat
+(
+    OCI_Resultset* rs,
+    uint           index
+);
+
+/**
+ * @brief
+ * Return the current float value of the column from its name in the resultset
+ *
+ * @param rs    - Resultset handle
+ * @param name  - Column name
+ *
+ * @note
+ * The column name is case insensitive
+ *
+ * @return
+ * The column current row value or 0.0 if no column found with the given name
+ *
+ */
+
+extern(System) float OCI_GetFloat2
+(
+    OCI_Resultset* rs,
+    const(mtext)*  name
 );
 
 /**
@@ -8077,6 +8188,22 @@ extern(System) double OCI_ElemGetDouble
 
 /**
  * @brief
+ * Return the float value of the given collection element
+ *
+ * @param elem   - Element handle
+ *
+ * @return
+ * Double value or 0 on failure
+ *
+ */
+
+extern(System) float OCI_ElemGetFloat
+(
+    OCI_Elem* elem
+);
+
+/**
+ * @brief
  * Return the String value of the given collection element
  *
  * @param elem   - Element handle
@@ -8363,6 +8490,24 @@ extern(System) boolean OCI_ElemSetDouble
 (
     OCI_Elem *elem,
     double    value
+);
+
+/**
+ * @brief
+ * Set a float value to a collection element
+ *
+ * @param elem   - Element handle
+ * @param value  - float value
+ *
+ * @return
+ * TRUE on success otherwise FALSE
+ *
+ */
+
+extern(System) boolean OCI_ElemSetFloat
+(
+    OCI_Elem* elem,
+    float     value
 );
 
 /**
@@ -8851,6 +8996,23 @@ extern(System) boolean OCI_RegisterDouble
 (
     OCI_Statement *stmt,
     const(mtext)* name
+);
+
+/**
+ * @brief
+ * Register a float output bind placeholder
+ *
+ * @param stmt - Statement handle
+ * @param name - Output bind name
+ *
+ * @return
+ * TRUE on success otherwise FALSE
+ */
+
+extern(System) boolean OCI_RegisterFloat
+(
+    OCI_Statement* stmt,
+    const(mtext)*  name
 );
 
 /**
@@ -12398,6 +12560,29 @@ extern(System) double OCI_ObjectGetDouble
 
 /**
  * @brief
+ * Return the float value of the given object attribute
+ *
+ * @param obj  - Object handle
+ * @param attr - Attribute name
+ *
+ * @note
+ * If the attribute is found in the object descriptor attributes list, then a
+ * datatype check is performed for integrity.
+ * OCI_ObjectGetFloat() returns a valid value only for integer and number based attributes
+ *
+ * @return
+ * Attribute value or 0.0 on failure or wrong attribute type
+ *
+ */
+
+extern(System) float OCI_ObjectGetFloat
+(
+    OCI_Object*   obj,
+    const(mtext)* attr
+);
+
+/**
+ * @brief
  * Return the string value of the given object attribute
  *
  * @param obj  - Object handle
@@ -12769,6 +12954,26 @@ extern(System) boolean OCI_ObjectSetDouble
     OCI_Object  *obj,
     const(mtext)*attr,
     double       value
+);
+
+/**
+ * @brief
+ * Set an object attribute of type float
+ *
+ * @param obj    - Object handle
+ * @param attr   - Attribute name
+ * @param value  - Float value
+ *
+ * @return
+ * TRUE on success otherwise FALSE
+ *
+ */
+
+extern(System) boolean OCI_ObjectSetFloat
+(
+    OCI_Object*   obj,
+    const(mtext)* attr,
+    float         value
 );
 
 /**
@@ -13493,6 +13698,7 @@ extern(System) const(mtext)* OCI_TypeInfoGetName
  * - OCI_ARG_BIGINT -----> big_int *
  * - OCI_ARG_BIGUINT ----> unsigned big_int *
  * - OCI_ARG_DOUBLE  ----> double *
+ * - OCI_ARG_FLOAT ------> float * 
  * - OCI_ARG_TEXT -------> dtext *
  * - OCI_ARG_RAW --------> void *
  * - OCI_ARG_DATETIME ---> OCI_Date *
@@ -13528,7 +13734,7 @@ extern(System) const(mtext)* OCI_TypeInfoGetName
  * - '%lu' : (big_uint) ---------> unsigned 64 bits integer
  * - '%hi' : (short) ------------> signed 16 bits integer
  * - '%hu' : (unsigned short) ---> unsigned 16 bits integer
- * - '%g'  : (double ) ----------> Numerics
+ * - '%g'  : (double, float ) ---> Numerics
  * - '%r'  : (OCI_Ref *) --------> Reference
  * - '%o'  : (OCI_Object *) -----> Object  (not implemented yet)
  * - '%c'  : (OCI_Coll *) -------> collection  (not implemented yet)
