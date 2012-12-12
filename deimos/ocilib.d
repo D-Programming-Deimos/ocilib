@@ -1197,6 +1197,23 @@ alias extern(C) void function
     OCI_Event *event
 ) POCI_NOTIFY;
 
+
+/**
+ * @var POCI_NOTIFY_AQ
+ *
+ * @brief
+ * AQ notification callback prototype.
+ *
+ * @param dequeue - dequeue handle
+ *
+ */
+
+alias extern(C) void function
+(
+    OCI_Dequeue *dequeue
+) POCI_NOTIFY_AQ;
+
+
 /**
  * @var POCI_TAF_HANDLER
  *
@@ -15967,6 +15984,51 @@ extern(System) OCI_Msg * OCI_DequeueGet
 (
     OCI_Dequeue *dequeue
 );
+
+/**
+ * @brief
+ * Subscribe for asynchronous messages notifications
+ *
+ * @param dequeue  - Dequeue handle
+ * @param port     - Port to use for notifications
+ * @param timeout  - notification timeout
+ * @param callback - User handler callback fired when messages are ready to be dequeued
+ *
+ * @note
+ * OCI_ENV_EVENTS flag must be passed to OCI_Initialize() to be able to use
+ * asynchronous messages notifications
+ *
+ * @note
+ * Requires Oracle Client 10gR2 or above
+ *
+ * @return
+ * TRUE on success otherwise FALSE
+ *
+ */
+
+extern(System) bool OCI_DequeueSubscribe
+(
+    OCI_Dequeue    *dequeue, 
+    uint    		port, 
+    uint    		timeout,
+    POCI_NOTIFY_AQ  callback
+);
+
+/**
+ * @brief
+ * Unsubscribe for asynchronous messages notifications
+ *
+ * @param dequeue - Dequeue handle
+ *
+ * @return
+ * TRUE on success otherwise FALSE
+ *
+ */
+
+extern(System) bool OCI_DequeueUnsubscribe
+(
+    OCI_Dequeue *dequeue
+);    
 
 /**
  * @brief
