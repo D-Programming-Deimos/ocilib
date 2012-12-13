@@ -11,7 +11,7 @@ OCI, OCILIB runs on all Oracle platforms.
 
 D BINDINGS
 ==========
-Version 1.1, based on OCILIB v3.10.0 (2012-08-08)
+Version 1.2, based on OCILIB v3.11.0 (2012-12-12)
 C headers available in the c/ directory.
 
 
@@ -23,9 +23,9 @@ It's licensed under GNU LESSER GENERAL PUBLIC LICENSE (LGPL).
 SETUP
 =====
 Windows
-  Download OCILIB version v3.10.0 (ocilib-3.10.0-windows.zip) from http://www.ocilib.net/
+  Download OCILIB version v3.11.0 (ocilib-3.11.0-windows.zip) from http://www.ocilib.net/
 
-  $ unzip ocilib-3.10.0-windows.zip
+  $ unzip ocilib-3.11.0-windows.zip
   $ cd ocilib\lib32
 
   Copy the folder 'deimos' and the file 'myapp.d' from this repository to ocilib\lib32
