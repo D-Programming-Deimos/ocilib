@@ -76,7 +76,7 @@ extern (C) {
  *
  * @section s_version Version information
  *
- * <b>Current version : 3.10.0 (2012-08-08)</b>
+ * <b>Current version : 3.12.0 (2013-02-07)</b>
  *
  * @section s_feats Main features
  *
@@ -168,7 +168,7 @@ extern (C) {
  * --------------------------------------------------------------------------------------------- */
 
 const OCILIB_MAJOR_VERSION =     3;
-const OCILIB_MINOR_VERSION =     10;
+const OCILIB_MINOR_VERSION =     12;
 const OCILIB_REVISION_VERSION =  0;
 
 /* --------------------------------------------------------------------------------------------- *
@@ -1552,6 +1552,7 @@ const OCI_CST_DROP =                        6;
 const OCI_CST_ALTER =                       7;
 const OCI_CST_BEGIN =                       8;
 const OCI_CST_DECLARE =                     9;
+const OCI_CST_CALL =                       10;
 
 /* environment modes */
 
@@ -1777,6 +1778,11 @@ const OCI_DPR_ERROR =                       2;
 const OCI_DPR_FULL =                        3;
 const OCI_DPR_PARTIAL =                     4;
 const OCI_DPR_EMPTY =                       5;
+
+/* direct path conversion modes */
+
+const OCI_DCM_DEFAULT =                     1;
+const OCI_DCM_FORCE =                       2;
 
 /* trace size constants */
 
@@ -3190,6 +3196,65 @@ extern(System) boolean OCI_SetStatementCacheSize
 (
     OCI_Connection  *con,
     uint     value
+);
+
+/**
+ * @brief
+ * Return the default LOB prefetch buffer size for the connection
+ *
+ * @param con  - Connection handle
+ * 
+ * @warning
+ * Requires Oracle Client AND Server 11gR1 or above
+ *
+ * @note 
+ * Prefetch size is:
+ * - number of bytes for BLOBs and BFILEs
+ * - number of characters for CLOBs.
+ *
+ * @note
+ * Default is 0 (prefetching disabled)
+ *
+ */
+
+extern(System) uint OCI_GetDefaultLobPrefetchSize
+(
+    OCI_Connection* con
+);
+    
+/**
+ * @brief
+ * Enable or disable prefetching for all LOBs fetched in the connection
+ *
+ * @param con   - Connection handle
+ * @param value - default prefetch buffer size
+ *
+ * @note
+ * If parameter 'value':
+ * - is == 0, it disables prefetching for all LOBs fetched in the connection.
+ * - is >  0, it enables prefetching for all LOBs fetched in the connection 
+ * and the given buffer size is used for prefetching LOBs
+ *
+ * @note
+ * LOBs prefetching is disabled by default
+ *
+ * @warning
+ * Requires Oracle Client AND Server 11gR1 or above.
+ *
+ * @note 
+ * Prefetch size is:
+ * - number of bytes for BLOBs and BFILEs
+ * - number of characters for CLOBs.
+ *
+ * @return
+ * TRUE on success otherwise FALSE
+ *
+ */
+
+extern(System) boolean OCI_SetDefaultLobPrefetchSize
+(
+    OCI_Connection* con,
+    uint    value
 );
 
 /**
@@ -14986,6 +15051,35 @@ extern(System) boolean OCI_DirPathSetBufferSize
 (
     OCI_DirPath *dp,
     uint size
+);
+
+/**
+ * @brief
+ * Set the direct path conversion mode
+ *
+ * @param dp   - Direct path Handle
+ * @param mode - Conversion mode
+ *
+ * @note
+ * Possible values for parameter 'mode' :
+ *   - OCI_DCM_DEFAULT : conversion fails on error
+ *   - OCI_DCM_FORCE   : conversion does not fail on error
+ *
+ * @note
+ * See OCI_DirPathConvert() for conversion mode details
+ *
+ * @note
+ * Default value is OCI_DCM_DEFAULT
+ *
+ * @return
+ * TRUE on success otherwise FALSE
+ *
+ */
+
+extern(System) boolean OCI_DirPathSetConvertMode
+(
+    OCI_DirPath* dp,
+    uint mode
 );
 
 /**
