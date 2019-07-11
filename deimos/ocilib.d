@@ -1305,7 +1305,7 @@ struct OCI_XID {
     long formatID;
     long gtrid_length;
     long bqual_length;
-    char data[128];
+    char[128] data;
 }
 
 /**
@@ -11360,7 +11360,7 @@ extern(System) boolean OCI_DateZoneToZone
  * TRUE on success otherwise FALSE
  *
  */
-import std.c.time;
+import core.stdc.time;
 extern(System) boolean OCI_DateToCTime
 (
     OCI_Date  *date,
